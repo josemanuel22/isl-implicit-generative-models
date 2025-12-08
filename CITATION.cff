@@ -1,0 +1,64 @@
+cff-version: 1.2.0
+message: "If you use this code or the associated paper, please cite it as below."
+title: "isl-implicit-generative-models"
+type: software
+version: "0.1.0"
+date-released: "2025-12-08"
+
+authors:
+  - family-names: "de Frutos Porras"
+    given-names: "José Manuel"
+    affiliation: "Department of Signal Theory and Communications, Universidad Carlos III de Madrid"
+    email: "jofrutos@ing.uc3m.es"
+  - family-names: "Vázquez"
+    given-names: "Manuel A."
+    affiliation: "Department of Signal Theory and Communications, Universidad Carlos III de Madrid"
+  - family-names: "Olmos"
+    given-names: "Pablo M."
+    affiliation: "Department of Signal Theory and Communications, Universidad Carlos III de Madrid"
+  - family-names: "Míguez"
+    given-names: "Joaquín"
+    affiliation: "Department of Signal Theory and Communications, Universidad Carlos III de Madrid"
+
+abstract: >
+  Reference implementation of sliced Invariant Statistical Loss (ISL) for training
+  implicit generative models, including multivariate and heavy-tailed settings, as
+  described in "Robust training of implicit generative models for multivariate and
+  heavy-tailed distributions with an invariant statistical loss".
+
+# Update this once the repo is created
+repository-code: "https://github.com/USERNAME/isl-implicit-generative-models"
+
+preferred-citation:
+  type: article
+  title: "Robust training of implicit generative models for multivariate and heavy-tailed distributions with an invariant statistical loss"
+  authors:
+    - family-names: "de Frutos Porras"
+      given-names: "José Manuel"
+    - family-names: "Vázquez"
+      given-names: "Manuel A."
+    - family-names: "Olmos"
+      given-names: "Pablo M."
+    - family-names: "Míguez"
+      given-names: "Joaquín"
+  journal: "Journal of Machine Learning Research"
+  year: 2025
+  notes: "Under review; preprint available on arXiv."
+  url: "https://arxiv.org/abs/2410.22381"
+
+references:
+  - type: article
+    title: "Training Implicit Generative Models via an Invariant Statistical Loss"
+    authors:
+      - family-names: "de Frutos Porras"
+        given-names: "José Manuel"
+      - family-names: "Olmos"
+        given-names: "Pablo M."
+      - family-names: "Vázquez"
+        given-names: "Manuel A."
+      - family-names: "Míguez"
+        given-names: "Joaquín"
+    year: 2024
+    notes: "Original AISTATS paper introducing ISL."
+    # You can fill this once you have the exact PMLR link:
+    url: "https://proceedings.mlr.press/v238/frutos24a/frutos24a.pdf"

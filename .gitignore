@@ -1,0 +1,92 @@
+# ---------------------------------
+# Python
+# ---------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Type checker caches
+.mypy_cache/
+.pytype/
+.dmypy.json
+dmypy.json
+
+# ---------------------------------
+# Virtual environments
+# ---------------------------------
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Conda
+.conda/
+*.conda
+*.ipynb_checkpoints
+
+# ---------------------------------
+# Jupyter / IPython
+# ---------------------------------
+.ipynb_checkpoints/
+.ipython/
+.jupyter/
+
+# ---------------------------------
+# VS Code
+# ---------------------------------
+.vscode/
+.history/
+
+# ---------------------------------
+# OS-specific
+# ---------------------------------
+.DS_Store
+Thumbs.db
+
+# ---------------------------------
+# Project-specific (optional, uncomment if you want)
+# ---------------------------------
+data/
+logs/
+outputs/
+models/
+checkpoints/
+runs/      # e.g. TensorBoard
+wandb/
+*.pt
+*.pth
+*.ckpt
