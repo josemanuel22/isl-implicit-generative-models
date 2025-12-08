@@ -38,4 +38,38 @@ The code is intentionally simple and modular: you can reuse the core ISL pieces 
 ```bash
 git clone https://github.com/<your-user>/isl-implicit-generative-models.git
 cd isl-implicit-generative-models
+```
+
+## Repository structure
+
+Rough layout (main bits):
+
+```text
+isl-implicit-generative-models/
+├── README.md
+├── CITATION.cff
+├── pyproject.toml / setup.py          # (if present)
+├── src/
+│   └── isl/
+│       ├── __init__.py
+│       ├── loss_1d.py                 # 1D ISL (hard & soft surrogate)
+│       ├── ranks.py                   # rank utilities
+│       ├── sliced.py                  # sliced ISL in R^d
+│       ├── metrics.py                 # simple metrics (KS/KSD etc.) for experiments
+│       ├── models.py                  # small MLP generators, etc.
+│       └── utils.py                   # seeding, device helpers, filesystem
+└── experiments/
+    ├── 1d_univariate/
+    │   ├── run_1d_isl_targets.py      # 1D toy targets + K ablations
+    │   └── ...
+    ├── 2d_toy/
+    │   ├── train_2d_sliced_isl_random.py
+    │   ├── train_2d_sliced_isl_smart.py
+    │   └── ...
+    ├── heavy_tails/
+    │   └── keystrokes_pareto_isl.py   # keystroke intervals, Pareto-ISL
+    └── time_series/
+        ├── train_rnn_isl_ett_gaussian.py      # univariate ETT + 1D ISL
+        └── train_rnn_sliced_isl_ett.py        # multivariate ETT + sliced ISL
+```
 
