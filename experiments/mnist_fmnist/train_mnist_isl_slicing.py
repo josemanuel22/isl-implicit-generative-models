@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-MNIST implicit generator trained with sliced ISL (DCGAN generator).
+MNIST implicit generator trained with sliced ISL (DCGAN generator, GPU + AMP).
 
 This script trains a DCGAN-style implicit generator G(z) -> x on MNIST using the
 Sliced Invariant Statistical Loss (ISL) in R^784:
@@ -13,13 +13,17 @@ Sliced Invariant Statistical Loss (ISL) in R^784:
 It saves:
     - a training curve (sliced ISL vs steps),
     - a grid of generated samples after training.
+
+This version:
+    - explicitly uses CUDA (and raises if not available),
+    - uses torch.cuda.amp (autocast + GradScaler) for mixed precision on GPU.
 """
 
 from __future__ import annotations
 
-import os
-os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
-os.environ["OMP_NUM_THREADS"] = "1"
+#import os
+#os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
+#os.environ["OMP_NUM_THREADS"] = "1"
 
 from pathlib import Path
 import sys
@@ -30,6 +34,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 import matplotlib.pyplot as plt
 from torchvision import datasets, transforms
@@ -44,7 +49,7 @@ if str(SRC) not in sys.path:
     sys.path.insert(0, str(SRC))
 
 from isl.sliced import sliced_isl_random
-from isl.utils import set_seed, get_device, ensure_dir
+from isl.utils import set_seed, ensure_dir
 
 
 # ---------------------------------------------------------------------
@@ -189,18 +194,26 @@ def train_mnist_sliced_isl_dcgan(
     eval_n_samples : int
         Number of samples to generate for the final image grid.
     device : torch.device, optional
-        If None, uses isl.utils.get_device(prefer_gpu=True).
+        Device where training is run (expects CUDA here).
     outdir : Path, optional
         Output directory for checkpoints / plots.
     """
+    # Device handling: expect GPU
     if device is None:
-        device = get_device(prefer_gpu=True)
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA is not available but a GPU run was requested.")
+        device = torch.device("cuda")
+    if device.type != "cuda":
+        raise RuntimeError(f"Expected a CUDA device, got {device}")
+
+    use_amp = True  # we want AMP on GPU
+
     if outdir is None:
         outdir = ROOT / "experiments" / "mnist_sliced_isl"
     ensure_dir(outdir)
 
     print("=" * 70)
-    print("MNIST implicit generator with sliced ISL (DCGAN generator)")
+    print("MNIST implicit generator with sliced ISL (DCGAN generator, GPU + AMP)")
     print(f"  data_root   : {data_root}")
     print(f"  steps       : {steps}")
     print(f"  batch_size  : {batch_size}")
@@ -212,6 +225,7 @@ def train_mnist_sliced_isl_dcgan(
     print(f"  cdf_bw      : {cdf_bandwidth}")
     print(f"  hist_sigma  : {hist_sigma}")
     print(f"  device      : {device}")
+    print(f"  use_amp     : {use_amp}")
     print(f"  outdir      : {outdir}")
     print("=" * 70)
 
@@ -230,6 +244,8 @@ def train_mnist_sliced_isl_dcgan(
 
     optimizer = optim.Adam(gen.parameters(), lr=lr, betas=(0.5, 0.999))
 
+    scaler = GradScaler(enabled=use_amp)
+
     losses: List[float] = []
     step = 0
     epoch = 0
@@ -241,7 +257,8 @@ def train_mnist_sliced_isl_dcgan(
             if step >= steps:
                 break
 
-            x = x.to(device)  # (B, 1, 28, 28), in [0,1]
+            # move to GPU with non_blocking for perf
+            x = x.to(device, non_blocking=True)  # (B, 1, 28, 28), in [0,1]
             B = x.size(0)
 
             # Flatten to (B,784) and rescale to [-1,1]
@@ -254,21 +271,23 @@ def train_mnist_sliced_isl_dcgan(
                 device=device,
             )  # (B, noise_dim)
 
-            x_fake_img = gen(z)                     # (B, 1, 28, 28) in [-1,1]
-            x_fake = x_fake_img.view(B, -1)         # (B, 784)
+            with autocast(enabled=use_amp):
+                x_fake_img = gen(z)                 # (B, 1, 28, 28) in [-1,1]
+                x_fake = x_fake_img.view(B, -1)     # (B, 784)
 
-            loss = sliced_isl_random(
-                x_real,
-                x_fake,
-                m=n_slices,
-                K=K,
-                cdf_bandwidth=cdf_bandwidth,
-                hist_sigma=hist_sigma,
-            )
+                loss = sliced_isl_random(
+                    x_real,
+                    x_fake,
+                    m=n_slices,
+                    K=K,
+                    cdf_bandwidth=cdf_bandwidth,
+                    hist_sigma=hist_sigma,
+                )
 
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+            scaler.scale(loss).backward()
+            scaler.step(optimizer)
+            scaler.update()
 
             step += 1
             losses.append(float(loss.item()))
@@ -298,7 +317,7 @@ def train_mnist_sliced_isl_dcgan(
 
     # ------------------- Generate and save sample grid ------------------- #
     gen.eval()
-    with torch.no_grad():
+    with torch.no_grad(), autocast(enabled=use_amp):
         n_samples = eval_n_samples
         z = sample_latent(
             n=n_samples,
@@ -307,31 +326,34 @@ def train_mnist_sliced_isl_dcgan(
         )
         x_fake_img = gen(z)  # (N, 1, 28, 28) in [-1,1]
 
-        # Back to [0,1] for visualisation
-        imgs = (x_fake_img + 1.0) / 2.0
+        # Back to [0,1] for visualisation, ensure float32 for matplotlib
+        imgs = (x_fake_img + 1.0) / 2.0          # still possibly float16
         imgs = torch.clamp(imgs, 0.0, 1.0)
+        imgs = imgs.float()                      # <-- cast to float32
 
-        grid = make_grid(imgs, nrow=int(np.sqrt(n_samples)) or 8, padding=2)
-        grid_np = grid.permute(1, 2, 0).cpu().numpy()
+    grid = make_grid(imgs, nrow=int(np.sqrt(n_samples)) or 8, padding=2)
+    grid = grid.float()                          # just to be safe
+    grid_np = grid.permute(1, 2, 0).cpu().numpy()
 
-        plt.figure(figsize=(6, 6))
-        plt.imshow(grid_np.squeeze(), cmap="gray")
-        plt.axis("off")
-        plt.title("MNIST samples – sliced ISL (DCGAN generator)")
-        plt.tight_layout()
-        img_path = outdir / f"mnist_sliced_isl_samples_{suffix}.png"
-        plt.savefig(img_path, dpi=200)
-        plt.close()
-        print(f"Saved generated samples grid to {img_path}")
+    plt.figure(figsize=(6, 6))
+    plt.imshow(grid_np.squeeze(), cmap="gray")
+    plt.axis("off")
+    plt.title("MNIST samples – sliced ISL (DCGAN generator)")
+    plt.tight_layout()
+    img_path = outdir / f"mnist_sliced_isl_samples_{suffix}.png"
+    plt.savefig(img_path, dpi=200)
+    plt.close()
+    print(f"Saved generated samples grid to {img_path}")
+
 
 
 # ---------------------------------------------------------------------
 #  CLI
 # ---------------------------------------------------------------------
 
-def parse_args() -> argparse.Namespace:
+def parse_args() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="MNIST implicit generator trained with sliced ISL (DCGAN generator)."
+        description="MNIST implicit generator trained with sliced ISL (DCGAN generator, GPU + AMP)."
     )
     parser.add_argument(
         "--data_root",
@@ -405,7 +427,7 @@ def parse_args() -> argparse.Namespace:
         default=42,
         help="Random seed.",
     )
-    return parser.parse_args()
+    return parser
 
 
 # ---------------------------------------------------------------------
@@ -413,9 +435,14 @@ def parse_args() -> argparse.Namespace:
 # ---------------------------------------------------------------------
 
 def main() -> None:
-    args = parse_args()
+    parser = parse_args()
+    args = parser.parse_args()
     set_seed(args.seed, deterministic=False)
-    device = get_device(prefer_gpu=True)
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("CUDA is not available but this script is configured for GPU training.")
+    device = torch.device("cuda")
+    print("Using device:", device)
 
     train_mnist_sliced_isl_dcgan(
         data_root=args.data_root,
