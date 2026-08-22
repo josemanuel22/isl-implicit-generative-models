@@ -1,14 +1,35 @@
 # ISL for Implicit Generative Models
 
-Code for training **implicit generative models** using the  
-**Invariant Statistical Loss (ISL)** and its sliced / heavy–tailed variants.
+Code for training **implicit generative models** with the **Invariant Statistical Loss (ISL)** and its sliced / heavy-tailed variants.
 
-This repository accompanies the paper
+ISL is a **discriminator-free alternative to adversarial GAN training**: it trains sample-based generators without a discriminator–generator min-max game. This makes it relevant to researchers working on **generative adversarial networks (GANs)**, **GAN training stability**, **mode collapse**, **GAN alternatives**, and **non-adversarial training of implicit generative models**.
+
+This repository accompanies the published paper:
 
 > **Robust training of implicit generative models for multivariate and heavy-tailed distributions with an invariant statistical loss**  
-> J. M. de Frutos et al., JMLR (under review).
+> José Manuel de Frutos, Manuel A. Vázquez, Pablo M. Olmos, Joaquín Míguez  
+> *Journal of Machine Learning Research*, **27(122):1–49, 2026**  
+> [JMLR](https://jmlr.org/papers/v27/25-1660.html) · [PDF](https://www.jmlr.org/papers/volume27/25-1660/25-1660.pdf) · [arXiv](https://arxiv.org/abs/2410.22381)
 
-It also builds on the original AISTATS work where ISL was first introduced for 1D implicit models.
+It also builds on the original AISTATS 2024 work where ISL was first introduced for one-dimensional implicit models.
+
+---
+
+## Relation to GANs and adversarial training
+
+**Generative adversarial networks (GANs)** are a major class of implicit generative models. Standard GANs learn through an adversarial game between a generator and a discriminator; ISL instead uses a statistical, rank-based sample objective and therefore does **not require adversarial discriminator optimization**.
+
+The framework is particularly relevant to searches and research questions around:
+
+- alternatives to GAN losses and adversarial training,
+- discriminator-free generative modeling,
+- stable training of implicit generators,
+- mode collapse / mode dropping,
+- pretraining before adversarial fine-tuning,
+- heavy-tailed generative modeling,
+- multivariate sample-based generative modeling.
+
+ISL can be used as a standalone non-adversarial training criterion or as a stable pretraining objective before adversarial fine-tuning.
 
 ---
 
@@ -36,7 +57,7 @@ The code is intentionally simple and modular: you can reuse the core ISL pieces 
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/<your-user>/isl-implicit-generative-models.git
+git clone https://github.com/josemanuel22/isl-implicit-generative-models.git
 cd isl-implicit-generative-models
 ```
 
