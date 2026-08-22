@@ -25,11 +25,21 @@ authors:
 abstract: >
   Reference implementation of Invariant Statistical Loss (ISL) methods for
   implicit generative models, including multivariate ISL-slicing and Pareto-ISL
-  for heavy-tailed distributions.
+  for heavy-tailed distributions. ISL provides a discriminator-free alternative
+  to adversarial GAN training and can also be used for stable pretraining before
+  adversarial fine-tuning.
 
 keywords:
   - invariant statistical loss
   - implicit generative models
+  - generative adversarial networks
+  - GANs
+  - GAN training
+  - adversarial training
+  - GAN alternatives
+  - discriminator-free generative modeling
+  - mode collapse
+  - training stability
   - heavy-tailed distributions
   - Pareto-ISL
   - random projections
